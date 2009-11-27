@@ -66,6 +66,13 @@ def get_filetype(ext):
             return filetype
     return None
 
+def process_image(src, attrs):
+    return src, attrs
+
+PROCESSORS = {
+    'image': (process_image,),
+}
+
 @register.tag
 @quick_tag
 def embed(context, src, **attrs):
@@ -82,6 +89,12 @@ def embed(context, src, **attrs):
     # Extende os atributos padrão para o tipo de arquivo
     default_attrs = app_settings.FILETYPES_ATTRIBUTES.get(filetype, {})
     attrs = dict(default_attrs, **attrs)
+
+    # Aplica processors configurados para o tipo de arquivo
+    # (Ex. redimensionar imagem)
+    processors = PROCESSORS.get(filetype, [])
+    for proc in processors:
+        src, attrs = proc(src, attrs)
 
     # Expande atributos em chave="valor"
     str_attrs = ' '.join(['%s="%s"' % i for i in attrs.items()])

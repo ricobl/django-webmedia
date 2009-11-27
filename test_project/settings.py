@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import os
+
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 
@@ -20,7 +22,7 @@ TIME_ZONE = 'America/Chicago'
 LANGUAGE_CODE = 'en-us'
 SITE_ID = 1
 USE_I18N = True
-MEDIA_ROOT = ''
+MEDIA_ROOT = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'media')
 MEDIA_URL = ''
 ADMIN_MEDIA_PREFIX = '/media/'
 SECRET_KEY = '@woz8q@bm^iqt-@bf7vw1#0$flgqneo*igq2_((pl0z1_y!z#8'

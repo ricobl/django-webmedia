@@ -1,16 +1,22 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from django.test import TestCase
 from django import template
+from django.conf import settings
 from django.template import mark_safe
+from django.test import TestCase
+from PIL import Image
+import os
+import shutil
 
-class EmbedTagTest(TestCase):
+class BaseEmbedTest(TestCase):
 
     def render_tag(self, tag, context={}):
         t = template.Template('{% load webmedia_tags %}' + tag)
         content = t.render(template.Context(context))
         return content
+
+class EmbedTagTest(BaseEmbedTest):
 
     def test_simple_image(self):
         content = self.render_tag('{% embed "/media/logo.gif" %}')
@@ -39,4 +45,23 @@ class EmbedTagTest(TestCase):
 
         content = self.render_tag('{% embed "flash.swf" wmode="transparent" %}')
         self.assertTrue('<param name="wmode" value="transparent" />' in content)
+
+class EmbedResizeTest(BaseEmbedTest):
+
+    def setUp(self):
+        self.path = os.path.join(settings.MEDIA_ROOT, 'test_images')
+        os.makedirs(self.path)
+        img = Image.new('RGB', (100,100))
+        img.save(os.path.join(self.path, 'imagetest.jpg'))
+
+    def tearDown(self):
+        # Safety check
+        assert self.path.replace(settings.MEDIA_ROOT, '') != ''
+        assert self.path.replace(settings.MEDIA_ROOT, '') != '/'
+        assert self.path.replace(settings.MEDIA_ROOT, '') != './'
+        shutil.rmtree(self.path)
+        
+    def test_image_resize(self):
+        content = self.render_tag('{% embed "test_images/imagetest.jpg" width="200" height="200" %}')
+        self.assertTrue(os.path.isfile(os.path.join(settings.MEDIA_ROOT,'imagetest_jpg_200x200.jpg')))
 
