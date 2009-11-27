@@ -1,0 +1,8 @@
+<object type="application/x-shockwave-flash" data="{{ src }}">
+	<param name="movie" value="{{ src }}" />
+	<param name="quality" value="best" />
+	<param name="allowScriptAcess" value="sameDomain" />
+	{% for name, value in attrs.items %}
+		<param name="{{ name }}" value="{{ value }}" />
+	{% endfor %}
+</object>

@@ -5,10 +5,12 @@ import re
 import time
 
 from django import template
+from django.template import loader
 from django.conf import settings
 from django.utils.safestring import mark_safe, SafeUnicode
 
-from ot.template import quick_tag
+from ot.template.quick_tag import quick_tag
+from webmedia import app_settings
 
 register = template.Library()
 
@@ -58,47 +60,35 @@ def nocache(path):
 
 ## TAGS
 
+def get_filetype(ext):
+    for filetype, types in app_settings.FILETYPES.items():
+        if ext in types:
+            return filetype
+    return None
+
 @register.tag
 @quick_tag
-def embed(context, src, **kwargs):
+def embed(context, src, **attrs):
     # Falha silenciosamente se não houver um caminho
-    if not src:
+    # ou extensão
+    src_no_ext, ext = os.path.splitext(src)
+    if not src or not ext:
         return ''
 
-    # Quebra o caminho e a extensão
-    src_no_ext, ext = os.path.splitext(src)
-    
+    # Remove o "." da extensão e encontra o tipo de arquivo
+    ext = ext[1:]
+    filetype = get_filetype(ext)
+
+    # Extende os atributos padrão para o tipo de arquivo
+    default_attrs = app_settings.FILETYPES_ATTRIBUTES.get(filetype, {})
+    attrs = dict(default_attrs, **attrs)
+
+    # Expande atributos em chave="valor"
+    str_attrs = ' '.join(['%s="%s"' % i for i in attrs.items()])
+
     # Contexto para o objeto a ser renderizado
-    object_context = kwargs.copy()
-    object_context.update({
-        'src': src,
-        'ext': ext,
-        # Acrescenta o caminho sem extensão
-        # para o script de ativação de activex para o IE
-        'src_no_ext': src_no_ext,
-        'get': get,
-    })
+    object_context = {'src': src, 'attrs': attrs,
+                      'flat_attrs': mark_safe(str_attrs)}
     
-    # Argumentos adicionais serão convertidos em atributos HTML
-    attrs = kwargs
-    
-    # Get a custom function by extension
-    custom = custom_html_media.get(ext)
-    if custom:
-        try:
-            # Executa a função específica e permite que altere os atributos
-            attrs = custom(object_context, src, **kwargs) or {}
-        except:
-            pass
-        
-    str_attrs = ''
-    if attrs.has_key('attrs'):
-        str_attrs = attrs['attrs']
-        del attrs['attrs']
-    
-    str_attrs += ' ' + ' '.join(['%s="%s"' % i for i in attrs.items()])
-    
-    object_context['attrs'] = mark_safe(str_attrs)
-    
-    return template.loader.render_to_string('utils/html/%s.html' % ext.lower(), object_context)
+    return loader.render_to_string('webmedia/embed/%s.html' % filetype, object_context)
 
