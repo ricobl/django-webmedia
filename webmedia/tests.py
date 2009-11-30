@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from PIL import Image
 from django import template
 from django.conf import settings
-from django.template import mark_safe
 from django.test import TestCase
-from PIL import Image
+from webmedia import app_settings
 import os
 import shutil
 
@@ -18,13 +18,20 @@ class BaseEmbedTest(TestCase):
 
 class EmbedTagTest(BaseEmbedTest):
 
+    def setUp(self):
+        self.settings_bkp = app_settings.PROCESSORS
+        app_settings.PROCESSORS = {}
+
+    def tearDown(self):
+        app_settings.PROCESSORS = self.settings_bkp
+
     def test_simple_image(self):
         content = self.render_tag('{% embed "/media/logo.gif" %}')
         self.assertTrue('<img src="/media/logo.gif" ' in content)
 
     def test_attributes(self):
         content = self.render_tag('{% embed "/media/logo.gif" width=100 height=200 %}')
-        self.assertTrue(' src="/media/logo.gif"' in content)
+        self.assertTrue(' src="/media/logo.gif"' in content, content)
         self.assertTrue(' width="100"' in content)
         self.assertTrue(' height="200"' in content)
 
@@ -37,7 +44,7 @@ class EmbedTagTest(BaseEmbedTest):
         tag = '{% embed src width=100 height=200 %}'
         for ext in extension_list:
             content = self.render_tag(tag, {'src': "file.%s" % ext})
-            self.assertTrue(('file.%s' % ext) in content)
+            self.assertTrue(('file.%s' % ext) in content, content)
 
     def test_default_attribute(self):
         content = self.render_tag('{% embed "flash.swf" %}')
@@ -46,22 +53,60 @@ class EmbedTagTest(BaseEmbedTest):
         content = self.render_tag('{% embed "flash.swf" wmode="transparent" %}')
         self.assertTrue('<param name="wmode" value="transparent" />' in content)
 
+class ProcessorTest(TestCase):
+
+    def test_import(self):
+        from webmedia.processors import get_filetype_processors
+        from webmedia.processors.image import thumbnail
+        image_processors = get_filetype_processors('image')
+        self.assertEqual(image_processors, [thumbnail])
+
 class EmbedResizeTest(BaseEmbedTest):
 
     def setUp(self):
+        # Setup test dirs
         self.path = os.path.join(settings.MEDIA_ROOT, 'test_images')
-        os.makedirs(self.path)
-        img = Image.new('RGB', (100,100))
+        self.thumb_path = os.path.join(app_settings.THUMBNAIL_ROOT, 'test_images')
+        for path in [self.path, self.thumb_path]:
+            if not os.path.isdir(path):
+                os.makedirs(path)
+        # Create test image
+        img = Image.new('RGB', (100, 100))
         img.save(os.path.join(self.path, 'imagetest.jpg'))
 
     def tearDown(self):
-        # Safety check
-        assert self.path.replace(settings.MEDIA_ROOT, '') != ''
-        assert self.path.replace(settings.MEDIA_ROOT, '') != '/'
-        assert self.path.replace(settings.MEDIA_ROOT, '') != './'
-        shutil.rmtree(self.path)
+        # Check and cleanup dirs
+        for path in [self.path, self.thumb_path]:
+            assert path
+            shutil.rmtree(os.path.abspath(path))
         
-    def test_image_resize(self):
-        content = self.render_tag('{% embed "test_images/imagetest.jpg" width="200" height="200" %}')
-        self.assertTrue(os.path.isfile(os.path.join(settings.MEDIA_ROOT,'imagetest_jpg_200x200.jpg')))
+    def test_thumbnail_crop(self):
+        # Set paths
+        orig = 'test_images/imagetest.jpg'
+        thumb = 'test_images/imagetest_jpg__w50_h40_mc.jpg'
+        thumb_path = os.path.join(app_settings.THUMBNAIL_ROOT, thumb)
+
+        # Test crop
+        content = self.render_tag('{% embed url width="50" height="40" method="crop" %}', {'url': orig})
+        self.assertTrue(thumb in content, content)
+        self.assertTrue(os.path.isfile(os.path.join(thumb_path)))
+        self.assertTrue('method=' not in content)
+        # Check image dimensions
+        img = Image.open(thumb_path)
+        self.assertEquals(img.size, (50, 40))
+
+    def test_thumbnail_fit(self):
+        # Set paths
+        orig = 'test_images/imagetest.jpg'
+        thumb = 'test_images/imagetest_jpg__w50_h40_mf.jpg'
+        thumb_path = os.path.join(app_settings.THUMBNAIL_ROOT, thumb)
+
+        # Test crop
+        content = self.render_tag('{% embed url width="50" height="40" method="fit" %}', {'url': orig})
+        self.assertTrue(thumb in content)
+        self.assertTrue(os.path.isfile(os.path.join(thumb_path)))
+        self.assertTrue('method=' not in content)
+        # Check image dimensions
+        img = Image.open(thumb_path)
+        self.assertEquals(img.size, (40, 40))
 

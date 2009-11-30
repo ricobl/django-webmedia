@@ -11,6 +11,7 @@ from django.utils.safestring import mark_safe, SafeUnicode
 
 from ot.template.quick_tag import quick_tag
 from webmedia import app_settings
+from webmedia.processors import get_filetype_processors
 
 register = template.Library()
 
@@ -66,13 +67,6 @@ def get_filetype(ext):
             return filetype
     return None
 
-def process_image(src, attrs):
-    return src, attrs
-
-PROCESSORS = {
-    'image': (process_image,),
-}
-
 @register.tag
 @quick_tag
 def embed(context, src, **attrs):
@@ -92,7 +86,7 @@ def embed(context, src, **attrs):
 
     # Aplica processors configurados para o tipo de arquivo
     # (Ex. redimensionar imagem)
-    processors = PROCESSORS.get(filetype, [])
+    processors = get_filetype_processors(filetype)
     for proc in processors:
         src, attrs = proc(src, attrs)
 
