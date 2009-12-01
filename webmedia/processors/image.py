@@ -6,14 +6,20 @@ from django.conf import settings
 from webmedia import app_settings
 import os
 
-CROP = 'crop'
-FIT = 'fit'
-
 class Thumbnail(object):
 
-    def __init__(self, src, **attrs):
+    CROP = 'crop'
+    FIT = 'fit'
 
-        self.src = src
+    def __init__(self, original_src, **attrs):
+
+        # Make absolute paths/urls relative
+        if original_src.startswith(settings.MEDIA_URL):
+            original_src = original_src[len(settings.MEDIA_URL):]
+        if original_src.startswith(settings.MEDIA_ROOT):
+            original_src = original_src[len(settings.MEDIA_ROOT):]
+
+        self.original_src = original_src
 
         self.method = attrs.pop('method', app_settings.IMAGE_RESIZE_METHOD)
         self.quality = attrs.pop('quality', app_settings.IMAGE_QUALITY)
@@ -27,7 +33,7 @@ class Thumbnail(object):
         BMPs to another formats.
         """
         if not format:
-            format = os.path.splitext(self.src)[1][1:]
+            format = os.path.splitext(self.original_src)[1][1:]
         format = format.upper()
         if format == 'JPEG':
             format = 'JPG'
@@ -35,17 +41,16 @@ class Thumbnail(object):
             format = app_settings.AUTO_CONVERT_BMPS.upper()
         return format
 
-    def get_path(self):
-        return os.path.join(settings.MEDIA_ROOT, self.src)
-
-    def get_thumb_path(self):
-        return os.path.join(app_settings.THUMBNAIL_ROOT, self.get_thumb_src())
-
-    def get_thumb_src(self):
+    @property
+    def src(self):
         # Get path, filename and extension
-        path, filename = os.path.split(self.src)
+        path, filename = os.path.split(self.original_src)
         base, ext = os.path.splitext(filename)
         ext = ext[1:]
+
+        # Fix paths to end with '/'
+        if path:
+            path += '/'
 
         flat_attrs = ''
         if self.attrs:
@@ -59,9 +64,6 @@ class Thumbnail(object):
             # Flatten resize method
             flat_attrs += '_%s%s' % ('m', self.method[0])
 
-        if path:
-            path += '/'
-
         return '%(path)s%(base)s_%(ext)s%(flat_attrs)s.%(ext)s' % {
             'path': path,
             'base': base,
@@ -69,9 +71,21 @@ class Thumbnail(object):
             'ext': self.format.lower(),
         }
 
+    @property
+    def path(self):
+        return os.path.join(app_settings.THUMBNAIL_ROOT, self.src)
+
+    @property
+    def url(self):
+        return app_settings.THUMBNAIL_URL + self.src
+
+    @property
+    def original_path(self):
+        return os.path.join(settings.MEDIA_ROOT, self.original_src)
+
     def _get_image(self):
         if not hasattr(self, '_image'):
-            self._image = Image.open(self.get_path())
+            self._image = Image.open(self.original_path)
         return self._image
 
     def _set_image(self, obj):
@@ -81,21 +95,19 @@ class Thumbnail(object):
 
     def generate(self):
 
-        thumb_path = self.get_thumb_path()
-
         # Make sure directories exist
-        path = os.path.dirname(thumb_path)
-        if not os.path.isdir(path):
-            os.makedirs(path)
+        dirname = os.path.dirname(self.path)
+        if not os.path.isdir(dirname):
+            os.makedirs(dirname)
 
         # Resize image
-        if self.method == FIT:
+        if self.method == Thumbnail.FIT:
             self.fit()
-        elif self.method == CROP:
+        elif self.method == Thumbnail.CROP:
             self.crop()
 
         # Save thumbnail
-        self.image.save(self.get_thumb_path(), quality=self.quality, optimize=(self.format != 'GIF'))
+        self.image.save(self.path, quality=self.quality, optimize=(self.format != 'GIF'))
 
     def fit(self):
         img = self.image
@@ -140,6 +152,6 @@ class Thumbnail(object):
 def thumbnail(src, attrs):
     thumb = Thumbnail(src, **attrs)
     thumb.generate()
-    return thumb.get_thumb_src(), thumb.attrs
+    return thumb.url, thumb.attrs
 
 

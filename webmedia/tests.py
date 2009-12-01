@@ -6,6 +6,7 @@ from django import template
 from django.conf import settings
 from django.test import TestCase
 from webmedia import app_settings
+from webmedia.processors.image import Thumbnail
 import os
 import shutil
 
@@ -72,15 +73,36 @@ class ThumbnailTest(TestCase):
     def setUp(self):
         self.image_filename = 'imagetest.jpg'
         self.image_path = os.path.join(settings.MEDIA_ROOT, self.image_filename)
-        create_image(self.image_path)
+        create_image(self.image_path, width=100, height=100)
 
     def tearDown(self):
         os.remove(self.image_path)
 
-    def test_root_image(self):
-        from webmedia.processors.image import Thumbnail
+    def test_relative_root(self):
         thumb = Thumbnail(self.image_filename)
-        self.assertEquals(thumb.get_thumb_src(), 'imagetest_jpg.jpg')
+        self.assertEquals(thumb.path, os.path.join(app_settings.THUMBNAIL_ROOT, 'imagetest_jpg.jpg'))
+        self.assertEquals(thumb.url, app_settings.THUMBNAIL_URL + 'imagetest_jpg.jpg')
+
+    def test_fit(self):
+        thumb = Thumbnail(self.image_filename, width=50, height=40, method=Thumbnail.FIT)
+        thumb.generate()
+        thumb_path = os.path.join(app_settings.THUMBNAIL_ROOT, 'imagetest_jpg__w50_h40_mf.jpg')
+        # Check if file exists
+        self.assertTrue(os.path.isfile(thumb_path))
+        # Check dimensions
+        img = Image.open(thumb_path)
+        self.assertEquals(img.size, (40, 40))
+
+    def test_crop(self):
+        thumb = Thumbnail(self.image_filename, width=50, height=40, method=Thumbnail.CROP)
+        thumb.generate()
+        thumb_path = os.path.join(app_settings.THUMBNAIL_ROOT, 'imagetest_jpg__w50_h40_mc.jpg')
+        # Check if file exists
+        self.assertTrue(os.path.isfile(thumb_path))
+        # Check dimensions
+        img = Image.open(thumb_path)
+        self.assertEquals(img.size, (50, 40))
+
 
 class EmbedResizeTest(BaseEmbedTest):
 
@@ -111,9 +133,6 @@ class EmbedResizeTest(BaseEmbedTest):
         self.assertTrue(thumb in content, content)
         self.assertTrue(os.path.isfile(os.path.join(thumb_path)))
         self.assertTrue('method=' not in content)
-        # Check image dimensions
-        img = Image.open(thumb_path)
-        self.assertEquals(img.size, (50, 40))
 
     def test_thumbnail_fit(self):
         # Set paths
@@ -121,12 +140,9 @@ class EmbedResizeTest(BaseEmbedTest):
         thumb = 'test_images/imagetest_jpg__w50_h40_mf.jpg'
         thumb_path = os.path.join(app_settings.THUMBNAIL_ROOT, thumb)
 
-        # Test crop
+        # Test fit
         content = self.render_tag('{% embed url width="50" height="40" method="fit" %}', {'url': orig})
         self.assertTrue(thumb in content)
         self.assertTrue(os.path.isfile(os.path.join(thumb_path)))
         self.assertTrue('method=' not in content)
-        # Check image dimensions
-        img = Image.open(thumb_path)
-        self.assertEquals(img.size, (40, 40))
 
