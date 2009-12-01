@@ -67,6 +67,9 @@ def get_filetype(ext):
             return filetype
     return None
 
+def apply_processors(src, attrs):
+    return src, attrs
+
 @register.tag
 @quick_tag
 def embed(context, src, **attrs):

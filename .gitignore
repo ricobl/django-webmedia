@@ -2,3 +2,4 @@ Thumbs.db
 *.pyc
 *~
 *.swp
+*egg-info

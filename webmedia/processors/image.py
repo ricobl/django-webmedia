@@ -10,8 +10,8 @@ CROP = 'crop'
 FIT = 'fit'
 
 class Thumbnail(object):
-    def __init__(self, src, **attrs):
 
+    def __init__(self, src, **attrs):
 
         self.src = src
 
@@ -59,7 +59,10 @@ class Thumbnail(object):
             # Flatten resize method
             flat_attrs += '_%s%s' % ('m', self.method[0])
 
-        return '%(path)s/%(base)s_%(ext)s%(flat_attrs)s.%(ext)s' % {
+        if path:
+            path += '/'
+
+        return '%(path)s%(base)s_%(ext)s%(flat_attrs)s.%(ext)s' % {
             'path': path,
             'base': base,
             'flat_attrs': flat_attrs,

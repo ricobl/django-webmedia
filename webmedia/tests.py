@@ -9,6 +9,11 @@ from webmedia import app_settings
 import os
 import shutil
 
+def create_image(path, width=100, height=100):
+    img = Image.new('RGB', (width, height))
+    img.save(path)
+    return img
+
 class BaseEmbedTest(TestCase):
 
     def render_tag(self, tag, context={}):
@@ -61,6 +66,22 @@ class ProcessorTest(TestCase):
         image_processors = get_filetype_processors('image')
         self.assertEqual(image_processors, [thumbnail])
 
+
+class ThumbnailTest(TestCase):
+
+    def setUp(self):
+        self.image_filename = 'imagetest.jpg'
+        self.image_path = os.path.join(settings.MEDIA_ROOT, self.image_filename)
+        create_image(self.image_path)
+
+    def tearDown(self):
+        os.remove(self.image_path)
+
+    def test_root_image(self):
+        from webmedia.processors.image import Thumbnail
+        thumb = Thumbnail(self.image_filename)
+        self.assertEquals(thumb.get_thumb_src(), 'imagetest_jpg.jpg')
+
 class EmbedResizeTest(BaseEmbedTest):
 
     def setUp(self):
@@ -71,8 +92,7 @@ class EmbedResizeTest(BaseEmbedTest):
             if not os.path.isdir(path):
                 os.makedirs(path)
         # Create test image
-        img = Image.new('RGB', (100, 100))
-        img.save(os.path.join(self.path, 'imagetest.jpg'))
+        create_image(os.path.join(self.path, 'imagetest.jpg'))
 
     def tearDown(self):
         # Check and cleanup dirs
