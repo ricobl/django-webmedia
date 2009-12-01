@@ -35,6 +35,10 @@ class EmbedTagTest(BaseEmbedTest):
         content = self.render_tag('{% embed "/media/logo.gif" %}')
         self.assertTrue('<img src="/media/logo.gif" ' in content)
 
+    def test_relative_url(self):
+        content = self.render_tag('{% embed "logo.gif" %}')
+        self.assertTrue('<img src="/media/logo.gif" ' in content)
+
     def test_attributes(self):
         content = self.render_tag('{% embed "/media/logo.gif" width=100 height=200 %}')
         self.assertTrue(' src="/media/logo.gif"' in content, content)
@@ -82,6 +86,37 @@ class ThumbnailTest(TestCase):
         thumb = Thumbnail(self.image_filename)
         self.assertEquals(thumb.path, os.path.join(app_settings.THUMBNAIL_ROOT, 'imagetest_jpg.jpg'))
         self.assertEquals(thumb.url, app_settings.THUMBNAIL_URL + 'imagetest_jpg.jpg')
+
+    def test_regeneration(self):
+
+        def make_thumb():
+            thumb = Thumbnail(self.image_filename, width=50, height=50, method=Thumbnail.CROP)
+            thumb.generate()
+            return thumb
+
+        # Create first thumbnail
+        thumb = make_thumb()
+        # Go back in time and change file modification times
+        # to allow comparison with new thumbnails
+        mtime = os.path.getmtime(thumb.path) - 5
+        os.utime(self.image_path, (mtime, mtime))
+        os.utime(thumb.path, (mtime, mtime))
+
+        # Create another, shouldn't generate a new thumb
+        thumb = make_thumb()
+        self.assertEquals(os.path.getmtime(thumb.path), mtime)
+
+        # Recreate the source and regenerate the thumb, should create a new thumb
+        create_image(self.image_path, width=100, height=100)
+        thumb = make_thumb()
+        self.assertNotEqual(os.path.getmtime(thumb.path), mtime)
+
+    def test_original_fits(self):
+        thumb = Thumbnail(self.image_filename)
+        self.assertFalse(thumb.needs_resize())
+        self.assertFalse(thumb.needs_generate())
+        thumb.generate()
+        self.assertFalse(os.path.isfile(thumb.path))
 
     def test_fit(self):
         thumb = Thumbnail(self.image_filename, width=50, height=40, method=Thumbnail.FIT)

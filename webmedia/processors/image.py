@@ -13,9 +13,7 @@ class Thumbnail(object):
 
     def __init__(self, original_src, **attrs):
 
-        # Make absolute paths/urls relative
-        if original_src.startswith(settings.MEDIA_URL):
-            original_src = original_src[len(settings.MEDIA_URL):]
+        # Make absolute paths relative
         if original_src.startswith(settings.MEDIA_ROOT):
             original_src = original_src[len(settings.MEDIA_ROOT):]
 
@@ -93,7 +91,26 @@ class Thumbnail(object):
 
     image = property(_get_image, _set_image)
 
+    def original_changed(self):
+        if not os.path.isfile(self.path):
+            return True
+        return os.path.getmtime(self.original_path) > os.path.getmtime(self.path)
+
+    def needs_resize(self):
+        return 'width' in self.attrs or 'height' in self.attrs
+
+    def needs_generate(self):
+        """
+        Checks if the thumbnail needs to be generated/resized and if
+        the original file has changed.
+        """
+        return self.needs_resize() and self.original_changed()
+
     def generate(self):
+
+        # Check if the thumbnail must be generated
+        if not self.needs_generate():
+            return
 
         # Make sure directories exist
         dirname = os.path.dirname(self.path)
@@ -150,8 +167,23 @@ class Thumbnail(object):
 
 
 def thumbnail(src, attrs):
-    thumb = Thumbnail(src, **attrs)
+    # Skip external URLs
+    if src.startswith('http://'):
+        return src, attrs
+
+    # Skip absolute files outside the MEDIA_URL
+    if not src.startswith(settings.MEDIA_URL):
+        return src, attrs
+
+    # Create thumbnail instance
+    path = src.replace(settings.MEDIA_URL, settings.MEDIA_ROOT)
+    thumb = Thumbnail(path, **attrs)
+
+    # Return original if doesn't need a thumbnail
+    if not thumb.needs_resize():
+        return src, thumb.attrs
+
+    # Generate thumb and return URL + attrs
     thumb.generate()
     return thumb.url, thumb.attrs
-
 

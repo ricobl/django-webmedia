@@ -70,6 +70,18 @@ def get_filetype(ext):
 def apply_processors(src, attrs):
     return src, attrs
 
+def get_relative_url(src):
+    """
+    Fixes URL source by prepending with MEDIA_URL when appropriate.
+    """
+    # Normalizes the src by removing MEDIA_URL from the beginning
+    if src.startswith(settings.MEDIA_URL):
+        src = src[len(settings.MEDIA_URL):]
+    # Skip external and absolute URLs
+    if not src.startswith('http://') and not src.startswith('/'):
+        return settings.MEDIA_URL + src
+    return src
+
 @register.tag
 @quick_tag
 def embed(context, src, **attrs):
@@ -86,6 +98,9 @@ def embed(context, src, **attrs):
     # Extende os atributos padrão para o tipo de arquivo
     default_attrs = app_settings.FILETYPES_ATTRIBUTES.get(filetype, {})
     attrs = dict(default_attrs, **attrs)
+
+    # Ajusta o src para URL relativa ao MEDIA_URL ou absoluta
+    src = get_relative_url(src)
 
     # Aplica processors configurados para o tipo de arquivo
     # (Ex. redimensionar imagem)
