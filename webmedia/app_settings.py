@@ -21,6 +21,6 @@ PROCESSORS = getattr(settings, 'WEBMEDIA_PROCESSORS', {
     'image': ('webmedia.processors.image.thumbnail',),
 })
 
-IMAGE_RESIZE_METHOD = getattr(settings, 'WEBMEDIA_IMAGE_RESIZE_METHOD', 0)
+IMAGE_RESIZE_METHOD = getattr(settings, 'WEBMEDIA_IMAGE_RESIZE_METHOD', 'crop')
 IMAGE_QUALITY = getattr(settings, 'WEBMEDIA_IMAGE_QUALITY', 80)
 AUTO_CONVERT_BMPS = getattr(settings, 'WEBMEDIA_AUTO_CONVERT_BMPS', 'GIF')

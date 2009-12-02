@@ -9,7 +9,7 @@ from django.template import loader
 from django.conf import settings
 from django.utils.safestring import mark_safe, SafeUnicode
 
-from ot.template.quick_tag import quick_tag
+from ot.template.quicktag import quicktag
 from webmedia import app_settings
 from webmedia.processors import get_filetype_processors
 
@@ -21,9 +21,7 @@ def url_to_root(path):
     """
     Recebe uma URL local e retorna o caminho no sistema de arquivos.
     """
-
     # Verifica se foi passado um caminho
-
     if not path:
         return path
 
@@ -83,8 +81,8 @@ def get_relative_url(src):
     return src
 
 @register.tag
-@quick_tag
-def embed(context, src, **attrs):
+@quicktag
+def embed(src, **attrs):
     # Falha silenciosamente se não houver um caminho
     # ou extensão
     src_no_ext, ext = os.path.splitext(src)
@@ -112,8 +110,8 @@ def embed(context, src, **attrs):
     str_attrs = ' '.join(['%s="%s"' % i for i in attrs.items()])
 
     # Contexto para o objeto a ser renderizado
-    object_context = {'src': src, 'attrs': attrs,
-                      'flat_attrs': mark_safe(str_attrs)}
+    context = {'src': src, 'attrs': attrs,
+               'flat_attrs': mark_safe(str_attrs)}
     
-    return loader.render_to_string('webmedia/embed/%s.html' % filetype, object_context)
+    return loader.render_to_string('webmedia/embed/%s.html' % filetype, context)
 
