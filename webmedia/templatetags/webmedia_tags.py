@@ -52,8 +52,8 @@ def nocache(path):
     if os.path.isfile(full_path):
         # Lê a data de modificação do arquivo
         m_time = time.localtime(os.path.getmtime(full_path))
-        # Retorna a data no formato "modified=[dia_ano][hora][minuto][segundo]"
-        return time.strftime('modified=%j-%H%M%S', m_time)
+        # Retorna a data no formato "[dia_ano][hora][minuto][segundo]"
+        return time.strftime('%j-%H%M%S', m_time)
 
     return ''
 
@@ -108,6 +108,8 @@ def embed(src, **attrs):
 
     # Expande atributos em chave="valor"
     str_attrs = ' '.join(['%s="%s"' % i for i in attrs.items()])
+
+    src += '?%s' % nocache(src)
 
     # Contexto para o objeto a ser renderizado
     context = {'src': src, 'attrs': attrs,
