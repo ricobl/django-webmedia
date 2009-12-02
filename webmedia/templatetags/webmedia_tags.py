@@ -109,7 +109,10 @@ def embed(src, **attrs):
     # Expande atributos em chave="valor"
     str_attrs = ' '.join(['%s="%s"' % i for i in attrs.items()])
 
-    src += '?%s' % nocache(src)
+    # Anexa código da data de modificação para evitar cache
+    anti_cache = nocache(src)
+    if anti_cache:
+        src += '?' + anti_cache
 
     # Contexto para o objeto a ser renderizado
     context = {'src': src, 'attrs': attrs,

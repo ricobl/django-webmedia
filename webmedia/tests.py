@@ -40,7 +40,7 @@ class EmbedTagTest(BaseEmbedTest):
         self.assertTrue('<img src="/media/logo.gif" ' in content)
 
     def test_attributes(self):
-        content = self.render_tag('{% embed "/media/logo.gif" width=100 height=200 %}')
+        content = self.render_tag('{% embed "/media/logo.gif",width=100,height=200 %}')
         self.assertTrue(' src="/media/logo.gif"' in content, content)
         self.assertTrue(' width="100"' in content)
         self.assertTrue(' height="200"' in content)
@@ -51,7 +51,7 @@ class EmbedTagTest(BaseEmbedTest):
             'css', 'js',
             'swf',
         ]
-        tag = '{% embed src width=100 height=200 %}'
+        tag = '{% embed src,width=100,height=200 %}'
         for ext in extension_list:
             content = self.render_tag(tag, {'src': "file.%s" % ext})
             self.assertTrue(('file.%s' % ext) in content, content)
@@ -164,7 +164,7 @@ class EmbedResizeTest(BaseEmbedTest):
         thumb_path = os.path.join(app_settings.THUMBNAIL_ROOT, thumb)
 
         # Test crop
-        content = self.render_tag('{% embed url width="50" height="40" method="crop" %}', {'url': orig})
+        content = self.render_tag('{% embed url,width="50",height="40",method="crop" %}', {'url': orig})
         self.assertTrue(thumb in content, content)
         self.assertTrue(os.path.isfile(os.path.join(thumb_path)))
         self.assertTrue('method=' not in content)
@@ -176,7 +176,7 @@ class EmbedResizeTest(BaseEmbedTest):
         thumb_path = os.path.join(app_settings.THUMBNAIL_ROOT, thumb)
 
         # Test fit
-        content = self.render_tag('{% embed url width="50" height="40" method="fit" %}', {'url': orig})
+        content = self.render_tag('{% embed url,width="50",height="40",method="fit" %}', {'url': orig})
         self.assertTrue(thumb in content)
         self.assertTrue(os.path.isfile(os.path.join(thumb_path)))
         self.assertTrue('method=' not in content)
