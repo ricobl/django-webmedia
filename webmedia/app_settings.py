@@ -8,6 +8,7 @@ FILETYPES = getattr(settings, 'WEBMEDIA_FILETYPES', {
     'stylesheet': ('css',), 
     'javascript':('js',),
     'flash': ('swf',),
+    'sound': ('mp3',),
 })
 
 FILETYPES_ATTRIBUTES = getattr(settings, 'WEBMEDIA_FILETYPES_ATTRIBUTES', {
