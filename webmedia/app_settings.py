@@ -18,8 +18,11 @@ FILETYPES_ATTRIBUTES = getattr(settings, 'WEBMEDIA_FILETYPES_ATTRIBUTES', {
 THUMBNAIL_ROOT = getattr(settings, 'WEBMEDIA_THUMBNAIL_ROOT', os.path.join(settings.MEDIA_ROOT, 'thumbs'))
 THUMBNAIL_URL = getattr(settings, 'WEBMEDIA_THUMBNAIL_URL', settings.MEDIA_URL + 'thumbs/')
 
+SOUND_PLAYER_URL = getattr(settings, 'WEBMEDIA_SOUND_PLAYER_URL', settings.MEDIA_URL + 'static/player.swf')
+
 PROCESSORS = getattr(settings, 'WEBMEDIA_PROCESSORS', {
     'image': ('webmedia.processors.image.thumbnail',),
+    'sound': ('webmedia.processors.sound.player',),
 })
 
 IMAGE_RESIZE_METHOD = getattr(settings, 'WEBMEDIA_IMAGE_RESIZE_METHOD', 'crop')
