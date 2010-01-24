@@ -1,0 +1,1 @@
+-e git://github.com/curaloucura/django-quicktag.git#egg=quicktag
