@@ -9,7 +9,7 @@ from django.template import loader
 from django.conf import settings
 from django.utils.safestring import mark_safe, SafeUnicode
 
-from webmedia.template.quicktag import quicktag
+from qucktag.template.quicktag import quicktag
 from webmedia import app_settings
 from webmedia.processors import get_filetype_processors
 
