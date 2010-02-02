@@ -129,11 +129,12 @@ class Thumbnail(object):
         self.image.save(self.path, quality=self.quality, optimize=(self.format != 'GIF'))
         
         # Update dimension attributes
-        self.update_size()
+        self.update_size(image=self.image)
 
-    def update_size(self):
-        # Update dimensions
-        self.attrs['width'], self.attrs['height'] = self.image.size
+    def update_size(self, image=None):
+        if image is None:
+            image = Image.open(self.path)
+        self.attrs['width'], self.attrs['height'] = image.size
 
     def fit(self):
         img = self.image
