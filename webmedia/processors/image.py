@@ -111,6 +111,7 @@ class Thumbnail(object):
 
         # Check if the thumbnail must be generated
         if not self.needs_generate():
+            self.update_size()
             return
 
         # Make sure directories exist
