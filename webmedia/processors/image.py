@@ -25,6 +25,8 @@ class Thumbnail(object):
 
         self.attrs = attrs
 
+        self.src = self.make_src()
+
     def fix_format(self, format):
         """
         Fix thumbnail format to match PIL's specs and to convert
@@ -39,8 +41,7 @@ class Thumbnail(object):
             format = app_settings.AUTO_CONVERT_BMPS.upper()
         return format
 
-    @property
-    def src(self):
+    def make_src(self):
         # Get path, filename and extension
         path, filename = os.path.split(self.original_src)
         base, ext = os.path.splitext(filename)
@@ -125,13 +126,20 @@ class Thumbnail(object):
 
         # Save thumbnail
         self.image.save(self.path, quality=self.quality, optimize=(self.format != 'GIF'))
+        
+        # Update dimension attributes
+        self.update_size()
+
+    def update_size(self):
+        # Update dimensions
+        self.attrs['width'], self.attrs['height'] = self.image.size
 
     def fit(self):
         img = self.image
         w, h = map(float, img.size)
         max_w, max_h = map(float, (self.attrs['width'] or w,
                                    self.attrs['height'] or h))
-        self.image.thumbnail(map(int, (max_w, max_h)), Image.ANTIALIAS)
+        img.thumbnail(map(int, (max_w, max_h)), Image.ANTIALIAS)
 
     def crop(self):
 
