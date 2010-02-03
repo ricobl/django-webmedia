@@ -57,7 +57,6 @@ def nocache(path):
 
     return ''
 
-## TAGS
 
 def get_filetype(ext):
     for filetype, types in app_settings.FILETYPES.items():
@@ -80,43 +79,64 @@ def get_relative_url(src):
         return settings.MEDIA_URL + src
     return src
 
-@register.tag
-@quicktag
-def embed(src, **attrs):
-    # Falha silenciosamente se não houver um caminho
-    # ou extensão
+def process_file(src, **attrs):
+    # Fail silently if there's no path or extension
     src_no_ext, ext = os.path.splitext(src)
     if not src or not ext:
-        return ''
+        return None, None, None
 
-    # Remove o "." da extensão e encontra o tipo de arquivo
+    # Removes the "." from the extension and get the filetype
     ext = ext[1:]
     filetype = get_filetype(ext)
 
-    # Extende os atributos padrão para o tipo de arquivo
+    # Extends default attributes for the filetype
     default_attrs = app_settings.FILETYPES_ATTRIBUTES.get(filetype, {})
     attrs = dict(default_attrs, **attrs)
 
-    # Ajusta o src para URL relativa ao MEDIA_URL ou absoluta
+    # Convert the src to a URL relative to the MEDIA_URL or absolute
     src = get_relative_url(src)
 
-    # Aplica processors configurados para o tipo de arquivo
-    # (Ex. redimensionar imagem)
+    # Apply processors (image resize or others)
     processors = get_filetype_processors(filetype)
     for proc in processors:
         src, attrs = proc(src, attrs)
 
-    # Expande atributos em chave="valor"
-    str_attrs = ' '.join(['%s="%s"' % i for i in attrs.items()])
-
-    # Anexa código da data de modificação para evitar cache
+    # Add anti-cache query string
     anti_cache = nocache(src)
     if anti_cache:
         src += '?' + anti_cache
 
-    # Contexto para o objeto a ser renderizado
+    # Return the (possibly) modified src and attributes
+    return src, filetype, attrs
+
+
+## FILTERS
+
+@register.filter
+def process(src, args):
+    """ Apply processors to a file and return the modified source. """
+    # Create a dict from "key=value,other_key=other_value" string
+    attrs = dict((pair.split('=') for pair in str(args).split(',')))
+    new_src, filetype, attrs = process_file(src, **attrs)
+    if not new_src:
+        return src
+    return new_src
+
+
+## TAGS
+
+@register.tag
+@quicktag
+def embed(src, **attrs):
+    """ Apply processor to a file and return the appropriate HTML tag. """
+    src, filetype, attrs = process_file(src, **attrs)
+    if not src:
+        return ''
+
+    # Flatten attributes
+    str_attrs = ' '.join(['%s="%s"' % i for i in attrs.items()])
+    # Return the rendered template for the filetype
     context = {'src': src, 'attrs': attrs,
                'flat_attrs': mark_safe(str_attrs)}
-    
     return loader.render_to_string('webmedia/embed/%s.html' % filetype, context)
 
