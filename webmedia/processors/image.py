@@ -6,6 +6,9 @@ from django.conf import settings
 from webmedia import app_settings
 import os
 
+# JPEG Fix
+ImageFile.MAXBLOCK = 1000000
+
 class Thumbnail(object):
 
     CROP = 'crop'
@@ -58,7 +61,7 @@ class Thumbnail(object):
             flat_attrs = '_'
             # Flatten dimensions
             for att in ['width', 'height']:
-                if self.attrs.get(att, False):
+                if self.attrs.has_key(att):
                     flat_attrs += '_%s%s' % (att[0], self.attrs[att])
             # Flatten resize method
             flat_attrs += '_%s%s' % ('m', self.method[0])
@@ -85,6 +88,10 @@ class Thumbnail(object):
     def _get_image(self):
         if not hasattr(self, '_image'):
             self._image = Image.open(self.original_path)
+            size = self._image.size
+            # Update empty dimensions
+            for i, att in enumerate(['width', 'height']):
+                self.attrs.setdefault(att, size[i])
         return self._image
 
     def _set_image(self, obj):
@@ -173,6 +180,7 @@ class Thumbnail(object):
         bottom = top + max_h
         
         # Crop to fit the desired size
+        print (left, top, right, bottom)
         self.image = img.crop(map(int, (left, top, right, bottom)))
 
 
