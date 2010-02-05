@@ -180,7 +180,6 @@ class Thumbnail(object):
         bottom = top + max_h
         
         # Crop to fit the desired size
-        print (left, top, right, bottom)
         self.image = img.crop(map(int, (left, top, right, bottom)))
 
 
