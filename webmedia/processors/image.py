@@ -6,6 +6,9 @@ from django.conf import settings
 from webmedia import app_settings
 import os
 
+# JPEG Fix
+ImageFile.MAXBLOCK = 1000000
+
 class Thumbnail(object):
 
     CROP = 'crop'
@@ -25,6 +28,8 @@ class Thumbnail(object):
 
         self.attrs = attrs
 
+        self.src = self.make_src()
+
     def fix_format(self, format):
         """
         Fix thumbnail format to match PIL's specs and to convert
@@ -39,8 +44,7 @@ class Thumbnail(object):
             format = app_settings.AUTO_CONVERT_BMPS.upper()
         return format
 
-    @property
-    def src(self):
+    def make_src(self):
         # Get path, filename and extension
         path, filename = os.path.split(self.original_src)
         base, ext = os.path.splitext(filename)
@@ -57,7 +61,7 @@ class Thumbnail(object):
             flat_attrs = '_'
             # Flatten dimensions
             for att in ['width', 'height']:
-                if self.attrs.get(att, False):
+                if self.attrs.has_key(att):
                     flat_attrs += '_%s%s' % (att[0], self.attrs[att])
             # Flatten resize method
             flat_attrs += '_%s%s' % ('m', self.method[0])
@@ -84,6 +88,10 @@ class Thumbnail(object):
     def _get_image(self):
         if not hasattr(self, '_image'):
             self._image = Image.open(self.original_path)
+            size = self._image.size
+            # Update empty dimensions
+            for i, att in enumerate(['width', 'height']):
+                self.attrs.setdefault(att, size[i])
         return self._image
 
     def _set_image(self, obj):
@@ -110,6 +118,7 @@ class Thumbnail(object):
 
         # Check if the thumbnail must be generated
         if not self.needs_generate():
+            self.update_size()
             return
 
         # Make sure directories exist
@@ -125,13 +134,21 @@ class Thumbnail(object):
 
         # Save thumbnail
         self.image.save(self.path, quality=self.quality, optimize=(self.format != 'GIF'))
+        
+        # Update dimension attributes
+        self.update_size(image=self.image)
+
+    def update_size(self, image=None):
+        if image is None:
+            image = Image.open(self.path)
+        self.attrs['width'], self.attrs['height'] = image.size
 
     def fit(self):
         img = self.image
         w, h = map(float, img.size)
         max_w, max_h = map(float, (self.attrs['width'] or w,
                                    self.attrs['height'] or h))
-        self.image.thumbnail(map(int, (max_w, max_h)), Image.ANTIALIAS)
+        img.thumbnail(map(int, (max_w, max_h)), Image.ANTIALIAS)
 
     def crop(self):
 
