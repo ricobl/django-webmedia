@@ -112,7 +112,7 @@ class Thumbnail(object):
         Checks if the thumbnail needs to be generated/resized and if
         the original file has changed.
         """
-        return self.needs_resize() and self.original_changed()
+        return self.original_changed()
 
     def generate(self):
 

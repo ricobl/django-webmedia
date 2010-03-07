@@ -114,9 +114,8 @@ class ThumbnailTest(TestCase):
     def test_original_fits(self):
         thumb = Thumbnail(self.image_filename)
         self.assertFalse(thumb.needs_resize())
-        self.assertFalse(thumb.needs_generate())
         thumb.generate()
-        self.assertFalse(os.path.isfile(thumb.path))
+        self.assertTrue(os.path.isfile(thumb.path))
 
     def test_fit(self):
         thumb = Thumbnail(self.image_filename, width=50, height=40, method=Thumbnail.FIT)
